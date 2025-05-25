@@ -1,93 +1,41 @@
-# 🔐 Project 02: Password Strength Meter
-# Author: Hammad Janjua
-
 import streamlit as st
-from zxcvbn import zxcvbn
-import random
+import zxcvbn
 
-# Custom CSS for animations and layout
-st.markdown("""
-    <style>
-        .title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #002f34;
-            text-align: center;
-            animation: fadeInDown 1s ease-in-out;
-        }
-        @keyframes fadeInDown {
-            0% { opacity: 0; transform: translateY(-20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .strength {
-            font-weight: bold;
-            text-align: center;
-            padding: 10px;
-            border-radius: 10px;
-            margin-top: 10px;
-        }
-        .password-box {
-            width: 100%;
-            padding: 10px;
-            font-size: 1.2rem;
-        }
-        .author {
-            text-align: center;
-            font-size: 1rem;
-            color: gray;
-            margin-bottom: 20px;
-        }
-    </style>
-""", unsafe_allow_html=True)
+def check_password_strength(password):
+    result = zxcvbn.zxcvbn(password)
+    strength = result['score']
+    feedback = result['feedback']['suggestions']
+    
+    strength_levels = ["Very Weak", "Weak", "Medium", "Strong", "Very Strong"]
+    return strength, strength_levels[strength], feedback
 
-# Weak password blacklist
-blacklist = ["password", "123456", "password123", "qwerty", "admin", "letmein"]
+st.title("🔐 Password Strength Meter")
 
-# Strong password generator
-def generate_strong_password():
-    characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
-    return ''.join(random.choice(characters) for _ in range(12))
+password = st.text_input("Enter your password:", type="password")
 
-# Color-coded strength label
-def strength_label(score):
-    if score <= 1:
-        return "❌ Weak", "#ff4d4d"
-    elif score == 2:
-        return "⚠️ Moderate", "#ffcc00"
-    elif score >= 3:
-        return "✅ Strong", "#4CAF50"
+if password:
+    strength, strength_text, feedback = check_password_strength(password)
 
-# Title
-st.markdown('<div class="title">🔐 Password Strength Meter</div>', unsafe_allow_html=True)
-st.markdown('<div class="author">Developed by: <strong>Hammad Janjua</strong></div>', unsafe_allow_html=True)
-
-# Password input
-password = st.text_input("🔑 Enter your password", type="password", key="password_input")
-
-# "Enter" Button
-if st.button("🔍 Check Strength"):
-    if not password:
-        st.warning("⚠️ Please enter a password before checking.")
-    elif password.lower() in blacklist:
-        st.error("❌ This password is too common. Please choose a stronger one.")
-    else:
-        result = zxcvbn(password)
-        score = result['score']
-        label, color = strength_label(score)
-
-        st.markdown(f"""
-            <div class="strength" style="background-color: {color}; color: white;">
-                Password Score: {score} / 4 — {label}
+    # Color-coded strength bar
+    colors = ["red", "orange", "yellow", "lightgreen", "green"]
+    st.markdown(
+        f"""
+        <div style='width:100%; background:#ddd; border-radius:10px;'>
+            <div style='width:{(strength + 1) * 20}%; background:{colors[strength]}; padding:5px; 
+                        border-radius:10px; text-align:center; color:white;'>
+                {strength_text}
             </div>
-        """, unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True
+    )
 
-        if result["feedback"]["warning"]:
-            st.warning(result["feedback"]["warning"])
+    # Show feedback for all passwords
+    if feedback:
+        st.warning("🔹 Suggestions to improve your password:")
+        for tip in feedback:
+            st.write(f"- {tip}")
+    else:
+        st.success("✅ Your password is strong!")
 
-        for tip in result["feedback"]["suggestions"]:
-            st.info(f"💡 {tip}")
-
-# Password Generator Feature
-if st.button("🔁 Generate Strong Password"):
-    strong_password = generate_strong_password()
-    st.success(f"✅ Suggested Password: `{strong_password}`")
+    # Show password strength score
+    st.write(f"Password strength score: {strength}/4")
